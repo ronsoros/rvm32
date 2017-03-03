@@ -18,6 +18,15 @@ BEGIN {
 	opcodes["swap"] = 11
 	opcodes["bei"] = 12
 	opcodes["eni"] = 13
+	opcodes["add"] = 0x15;
+	opcodes["sub"] = 0x16;
+	opcodes["mul"] = 0x17;
+	opcodes["div"] = 0x18;
+	opcodes["not"] = 0x19;
+	opcodes["eq"] = 0x20;
+	opcodes["gt"] = 0x21;
+	opcodes["lt"] = 0x22;
+	opcodes["jme"] = 0x25;
 	total = 1;
 	pc = 0;
 }

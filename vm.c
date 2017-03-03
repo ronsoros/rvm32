@@ -107,6 +107,13 @@ int32_t exec(vm *cvm) {
 		case 0xC: cvm->enableints = 1; break;
 		case 0xD: cvm->enableints = 0; break;
 		case 0x10: tmpa = cvm->pop(cvm); cvm->push(cvm, tmpa + 1); break;
+		case 0x12: tmpa = cvm->pop(cvm); cvm->push(cvm, tmpa - 1); break;
+		#define ___VM_MATH(op,act) case op: cvm->push(cvm, cvm->pop(cvm) act cvm->pop(cvm)); break
+		___VM_MATH(0x15, +); ___VM_MATH(0x16, -); ___VM_MATH(0x17, *);
+		___VM_MATH(0x18, /); ___VM_MATH(0x20, ==);
+		___VM_MATH(0x21, >); ___VM_MATH(0x22, <);
+		case 0x19: cvm->push(cvm, !cvm->pop(cvm)); break;
+		case 0x25: if ( cvm->pop(cvm) ) { cvm->call(cvm, cvm->pop(cvm), true); } break;
 		case 0x11: cvm->timerinterval = cvm->pop(cvm); break;
 		default: raise_int(2);
 	}
