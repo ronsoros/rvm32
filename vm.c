@@ -95,15 +95,15 @@ int32_t exec(vm *cvm) {
 		case 3: cvm->push(cvm, cvm->peek(cvm)); break;
 		case 4: cvm->push(cvm, cvm->mread(cvm, cvm->pop(cvm))); break;
 		case 5: 
-			tmpb = cvm->pop(cvm); tmpa = cvm->pop(cvm);
+			tmpa = cvm->pop(cvm); tmpb = cvm->pop(cvm);
 			___VM_DEBUG_PRINTF("stowing: %d // %x -> %d // %x", tmpb, tmpb, tmpa, tmpa); cvm->mwrite(cvm, tmpa, tmpb); break;
 		case 6: case 7: cvm->call(cvm, cvm->pop(cvm), true); break;
 		case 8: cvm->call(cvm, cvm->pop(cvm), false); break;
 		case 2: printf("%c", cvm->pop(cvm)); break;
 		case 9: raise_int(cvm->pop(cvm)); break;
 		case 0xA: cvm->push(cvm, cvm->interrupts); break;
-		case 0xB: tmpa = cvm->pop(cvm); tmpb = cvm->pop(cvm); cvm->push(cvm, tmpb);
-				cvm->push(cvm, tmpa); break;
+		case 0xB: tmpa = cvm->pop(cvm); tmpb = cvm->pop(cvm); cvm->push(cvm, tmpa);
+				cvm->push(cvm, tmpb); break;
 		case 0xC: cvm->enableints = 1; break;
 		case 0xD: cvm->enableints = 0; break;
 		case 0x10: tmpa = cvm->pop(cvm); cvm->push(cvm, tmpa + 1); break;
@@ -113,7 +113,7 @@ int32_t exec(vm *cvm) {
 		___VM_MATH(0x18, /); ___VM_MATH(0x20, ==);
 		___VM_MATH(0x21, >); ___VM_MATH(0x22, <);
 		case 0x19: cvm->push(cvm, !cvm->pop(cvm)); break;
-		case 0x25: if ( cvm->pop(cvm) ) { cvm->call(cvm, cvm->pop(cvm), true); } break;
+		case 0x25: if ( cvm->pop(cvm) ) { cvm->call(cvm, cvm->pop(cvm), true); } else { cvm->pop(cvm); } break;
 		case 0x11: cvm->timerinterval = cvm->pop(cvm); break;
 		default: raise_int(2);
 	}

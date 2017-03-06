@@ -3,14 +3,13 @@ push 16
 settlen
 push 65
 outc
+push @inth
 pushivt
 inc
 inc
 inc
-push @inth
-swap
 stw
-bei
+#bei
 push @abb
 jmp
 : inth
@@ -35,3 +34,5 @@ ret
 : done
 	push 68
 	outc
+	push @abb
+	jmp
