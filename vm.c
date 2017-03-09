@@ -77,6 +77,11 @@ int32_t vm_call(vm *cvm, int32_t addr, enum {false, true} jump) {
 	}
 	cvm->pc = addr;
 }
+#define object(n) cvm->mread(cvm, n)
+#define pc cvm->pc
+#define globals(id) cvm->mread(cvm, cvm->stack - 32 - 64 + id)
+#define globalt(id,v) cvm->mwrite(cvm, cvm->stack - 32 - 64 + id,v)
+enum { IFETCH, ISTORE, IPUSH, IPOP, IADD, ISUB, ILT, JZ, JNZ, JMP, HALT, IEQ , IMUL, IDIV, IFUNC, IENDF, ICALL = 754, IMWRITE, IMREAD };
 int32_t exec(vm *cvm) {
 	cvm->timer++;
 	int32_t tmpa, tmpb, tmpc;
@@ -84,41 +89,35 @@ int32_t exec(vm *cvm) {
 		cvm->timer = 0;
 		raise_int(3);
 	}
-
-	#ifdef ___VM_DEBUG
-		int32_t op = cvm->mread(cvm, cvm->pc);
-		printf("[%x // %d] %x %d\n", cvm->pc, cvm->pc, op, op);
-	#endif
-	switch(cvm->mread(cvm, cvm->pc++)) {
-		case 0: return 0;
-		case 1: cvm->push(cvm, cvm->mread(cvm, cvm->pc++)); break;
-		case 3: cvm->push(cvm, cvm->peek(cvm)); break;
-		case 4: cvm->push(cvm, cvm->mread(cvm, cvm->pop(cvm))); break;
-		case 5: 
-			tmpa = cvm->pop(cvm); tmpb = cvm->pop(cvm);
-			___VM_DEBUG_PRINTF("stowing: %d // %x -> %d // %x", tmpb, tmpb, tmpa, tmpa); cvm->mwrite(cvm, tmpa, tmpb); break;
-		case 6: case 7: cvm->call(cvm, cvm->pop(cvm), true); break;
-		case 8: cvm->call(cvm, cvm->pop(cvm), false); break;
-		case 2: printf("%c", cvm->pop(cvm)); break;
-		case 9: raise_int(cvm->pop(cvm)); break;
-		case 0xA: cvm->push(cvm, cvm->interrupts); break;
-		case 0xB: tmpa = cvm->pop(cvm); tmpb = cvm->pop(cvm); cvm->push(cvm, tmpa);
-				cvm->push(cvm, tmpb); break;
-		case 0xC: cvm->enableints = 1; break;
-		case 0xD: cvm->enableints = 0; break;
-		case 0x10: tmpa = cvm->pop(cvm); cvm->push(cvm, tmpa + 1); break;
-		case 0x12: tmpa = cvm->pop(cvm); cvm->push(cvm, tmpa - 1); break;
-		#define ___VM_MATH(op,act) case op: cvm->push(cvm, cvm->pop(cvm) act cvm->pop(cvm)); break
-		___VM_MATH(0x15, +); ___VM_MATH(0x16, -); ___VM_MATH(0x17, *);
-		___VM_MATH(0x18, /); ___VM_MATH(0x20, ==);
-		___VM_MATH(0x21, >); ___VM_MATH(0x22, <);
-		case 0x19: cvm->push(cvm, !cvm->pop(cvm)); break;
-		case 0x25: if ( cvm->pop(cvm) ) { cvm->call(cvm, cvm->pop(cvm), true); } else { cvm->pop(cvm); } break;
-		case 0x11: cvm->timerinterval = cvm->pop(cvm); break;
-		default: raise_int(2);
-	}
+//printf("%d\n", object(pc));
+switch (object(pc++))
+    { case IFETCH: cvm->push(cvm, globals(object(pc++)));               goto again;
+      case ISTORE: globalt(object(pc++), cvm->pop(cvm)); if (object(pc-1)==0) printf("o%d\n",globals(object(pc-1)));              goto again;
+      case IMWRITE: tmpa=cvm->pop(cvm); tmpb=cvm->pop(cvm); cvm->mwrite(cvm, tmpb, tmpa); goto again;
+      case IMREAD: tmpa=cvm->pop(cvm); cvm->push(cvm, cvm->mread(cvm, tmpa)); goto again;
+      case IPUSH : cvm->push(cvm,object(pc++));                        goto again;
+      case IPOP  : cvm->pop(cvm);                                 goto again;
+      //case IFUNC: globalt(object(pc++),pc); goto again;
+      case IADD  : cvm->push(cvm, cvm->pop(cvm) + cvm->pop(cvm));       goto again;
+case IMUL  : cvm->push(cvm, cvm->pop(cvm) * cvm->pop(cvm));        goto again;
+case IDIV  : cvm->push(cvm, cvm->pop(cvm) / cvm->pop(cvm));        goto again;
+case IFUNC: globalt(object(pc++), pc);while (object(pc) != IENDF) pc++; pc++; goto again;
+      case ISUB  : cvm->push(cvm,cvm->pop(cvm) - cvm->pop(cvm));        goto again;
+      case ILT   : cvm->push(cvm, cvm->pop(cvm) < cvm->pop(cvm));        goto again;
+      case IEQ: cvm->push(cvm, cvm->pop(cvm) == cvm->pop(cvm));  goto again;
+	case IENDF: pc = cvm->pop(cvm); goto again;
+      case JMP   : pc += object(pc);                            goto again;
+      case ICALL: cvm->push(cvm,pc); pc = globals(object(pc++)); goto again;
+      case JZ    : if (cvm->pop(cvm) == 0) pc += object(pc); else pc++; goto again;
+      case JNZ   : if (cvm->pop(cvm) != 0) pc += object(pc); else pc++; goto again;
+case HALT: return 0;
+	default: raise_int(2);
+    }
+	again:
 	return 1;
 }
+#undef pc
+#undef object
 #define ___VM_IS_LOADED 1
 #define ___VM_ASSERT(n,int) if (!(n)) { raise_int(int); }
 vm* init(vm* cvm, int32_t* code, int32_t codesize, int32_t stacksize) {
